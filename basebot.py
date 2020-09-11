@@ -3,10 +3,10 @@ from typing import Any, Dict, List
 
 import sc2
 from loguru import logger
-from MapAnalyzer import MapData
 from sc2.position import Point2, Point3
 
-from game_version import VersionManager
+from Raven.game_version import VersionManager
+from Raven.managers.MapManager import MapManager
 
 GREEN = Point3((0, 255, 0))
 RED = Point3((255, 0, 0))
@@ -31,17 +31,16 @@ class LogFilter:
         return record["level"].no >= levelno
 
 
-
 class BaseBot(sc2.BotAI):
 
     def __init__(self, loglevel=None):
         super().__init__()
-        self.map_data: MapData = None
+        self.loglevel = loglevel or "DEBUG"
+        self.map_manager = MapManager(self, loglevel=self.loglevel)
         self.version_manager = VersionManager()
         self.logger = sc2.main.logger
-        self.loglevel = loglevel
         self.log_filter = LogFilter(module_name='picklerick', level=self.loglevel)
-        self.logger.remove()
+        # self.logger.remove()
         self.log_format = LOG_FORMAT
         self.logger.add(sys.stderr, format=self.log_format, filter=self.log_filter)
         # self.logger.add(f"logs/log1.log", format=self.log_format, filter=self.log_filter)
@@ -49,10 +48,7 @@ class BaseBot(sc2.BotAI):
     async def on_start(self):
 
         await self.version_manager.handle_game_version(self.client)
-        if self.loglevel is not None:
-            self.map_data = MapData(self, loglevel=self.loglevel)
-        else:
-            self.map_data = MapData(self, loglevel="DEBUG")
+        self.map_manager.initialize()
 
     async def on_step(self, iteration: int):
         pass
