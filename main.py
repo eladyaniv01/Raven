@@ -1,7 +1,7 @@
 import sc2
 from sc2.player import Bot, Computer
 
-from .picklerick import PickleRick
+from Raven.picklerick import PickleRick
 
 
 def main():

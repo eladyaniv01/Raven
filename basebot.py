@@ -6,6 +6,7 @@ from loguru import logger
 from sc2.position import Point2, Point3
 
 from Raven.game_version import VersionManager
+from Raven.managers.ConstructionManager import ConstructionManager
 from Raven.managers.MapManager import MapManager
 
 GREEN = Point3((0, 255, 0))
@@ -37,6 +38,7 @@ class BaseBot(sc2.BotAI):
         super().__init__()
         self.loglevel = loglevel or "DEBUG"
         self.map_manager = MapManager(self, loglevel=self.loglevel)
+        self.construction_manager = ConstructionManager(self)
         self.version_manager = VersionManager()
         self.logger = sc2.main.logger
         self.log_filter = LogFilter(module_name='picklerick', level=self.loglevel)
