@@ -1,4 +1,3 @@
-import sys
 from typing import Any, Dict, List
 
 import sc2
@@ -18,7 +17,7 @@ LOG_FORMAT = "<w><bold>{time:YY:MM:DD:HH:mm:ss}|" \
              "<level>{level: <8}</level>|<green>{name: ^15}</green>|" \
              "{function: ^15}|" \
              "{line: >4}|" \
-             "<level> {level.icon} {message}</level></bold></w>"
+             "<level> {level.icon}  {message}</level></bold></w>"
 
 
 class LogFilter:
@@ -32,20 +31,21 @@ class LogFilter:
         return record["level"].no >= levelno
 
 
+
 class BaseBot(sc2.BotAI):
 
     def __init__(self, loglevel=None):
         super().__init__()
-        self.loglevel = loglevel or "DEBUG"
+        self.loglevel = loglevel or "ERROR"
         self.map_manager = MapManager(self, loglevel=self.loglevel)
         self.construction_manager = ConstructionManager(self)
         self.version_manager = VersionManager()
-        self.logger = sc2.main.logger
         self.log_filter = LogFilter(module_name='picklerick', level=self.loglevel)
-        # self.logger.remove()
         self.log_format = LOG_FORMAT
-        self.logger.add(sys.stderr, format=self.log_format, filter=self.log_filter)
-        # self.logger.add(f"logs/log1.log", format=self.log_format, filter=self.log_filter)
+        # logger.add(sys.stderr,  filter=self.log_filter)
+
+    def on_end(self, game_result):
+        super().on_end(game_result)
 
     async def on_start(self):
 
@@ -53,6 +53,7 @@ class BaseBot(sc2.BotAI):
         self.map_manager.initialize()
 
     async def on_step(self, iteration: int):
+        # logger.info(f"{iteration}")
         pass
 
     def _draw_point_list(self, point_list: List = None, color=None, text=None, box_r=None) -> bool:

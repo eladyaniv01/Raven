@@ -1,8 +1,10 @@
-from sc2 import UnitTypeId, AbilityId
+from loguru import logger
+from sc2 import AbilityId, UnitTypeId
 from sc2.cache import property_cache_once_per_frame
 from sc2.unit import Unit
 
-from Raven.basebot import BaseBot
+from Raven.base.basebot import BaseBot
+from Raven.base.hub import Hub
 
 
 class PickleRick(BaseBot):
@@ -10,6 +12,10 @@ class PickleRick(BaseBot):
     def __init__(self, debug=True):
         super().__init__(loglevel="INFO")
         self.debug = debug
+        self.hub = Hub(bot=self)
+        self.f = open("logs/log1234.log", 'w')  # log file
+        logger.remove()
+        logger.add(self.f, filter=self.log_filter)
 
     def building_requirements_satisfied(self, building_type: UnitTypeId) -> bool:
         return (self.construction_manager.tech_tree[building_type] is None
@@ -108,13 +114,18 @@ class PickleRick(BaseBot):
         self.map_manager.set_base(townhall=self.townhalls[0], name='Main')
 
     async def on_end(self, game_result):
-        self.logger.info(game_result)
-        self.logger.info("buh buh")
+        logger.info(game_result)
+        logger.info("buh buh")
+        self.f.close()
+        super().on_end(game_result)
 
     async def on_step(self, iteration: int):
         await self.map_manager.update(iteration=iteration)
+        logger.info(f"{iteration}")
+        logger.debug(f"{iteration}")
         await self.control_unit_production()
-        self._debug_draw()
+        if self.debug:
+            self.hub.debug_draw()
 
     # async def walloff(self, townhall, choke: MapAnalyzer.ChokeArea):
     #     if choke.is_ramp:
@@ -122,85 +133,3 @@ class PickleRick(BaseBot):
 
 
 
-    def _debug_draw(self) -> None:
-
-        # left hand side
-        self.client.debug_text_screen(
-            f"Bot mode: ",
-            pos=(0.2, 0.1),
-            size=13,
-            color=(0, 255, 255),
-        )
-        self.client.debug_text_screen(
-            f"Army Comp: ",
-            pos=(0.2, 0.1),
-            size=13,
-            color=(0, 255, 255),
-        )
-        self.client.debug_text_screen(
-            f"Opening complete: ",
-            pos=(0.2, 0.12),
-            size=13,
-            color=(0, 255, 255),
-        )
-        self.client.debug_text_screen(
-            f"Workers per gas: ",
-            pos=(0.2, 0.14),
-            size=13,
-            color=(0, 255, 255),
-        )
-
-        # eft hand side, bottom
-        self.client.debug_text_screen(
-            f"Priority queue: ",
-            pos=(0.2, 0.14),
-            size=13,
-            color=(0, 255, 255),
-        )
-
-        # right hand side
-        self.client.debug_text_screen(
-            f"Enemy Army Value:",
-            pos=(0.7, 0.1),
-            size=13,
-            color=(0, 255, 255),
-        )
-        self.client.debug_text_screen(
-            f"Ready Army Value:",
-            pos=(0.7, 0.13),
-            size=13,
-            color=(0, 255, 255),
-        )
-        self.client.debug_text_screen(
-            f"Total Army Value: ",
-            pos=(0.7, 0.15),
-            size=13,
-            color=(0, 255, 255),
-        )
-
-        self.client.debug_text_screen(
-            f"Resources Lost: ",
-            pos=(0.7, 0.17),
-            size=13,
-            color=(0, 255, 255),
-        )
-        self.client.debug_text_screen(
-            f"Enemy Resources Lost: ",
-            pos=(0.7, 0.19),
-            size=13,
-            color=(0, 255, 255),
-        )
-
-        self.client.debug_text_screen(
-            f"Mineral collection rate: {self.state.score.collection_rate_minerals}",
-            pos=(0.7, 0.21),
-            size=13,
-            color=(0, 255, 255),
-        )
-
-        self.client.debug_text_screen(
-            f"Vespene collection rate: {self.state.score.collection_rate_vespene}",
-            pos=(0.7, 0.23),
-            size=13,
-            color=(0, 255, 255),
-        )

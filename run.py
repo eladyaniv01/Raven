@@ -1,7 +1,6 @@
 import lzma
 import pickle
 
-import numpy as np
 from MapAnalyzer.MapData import MapData
 from MapAnalyzer.utils import import_bot_instance
 
@@ -14,7 +13,6 @@ bot = import_bot_instance(raw_game_data, raw_game_info, raw_observation)
 map_data = MapData(bot, loglevel="DEBUG")
 # map_data.plot_map()
 # map_data.show()
-logger = map_data.logger
 base = map_data.bot.townhalls[0]
 home = reg_start = map_data.where(base.position_tuple)
 reg_end = map_data.where(map_data.bot.enemy_start_locations[0].position)
