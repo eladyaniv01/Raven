@@ -1,12 +1,14 @@
 from typing import Any, Dict, List
 
 import sc2
+import yaml
 from loguru import logger
 from sc2.position import Point2, Point3
 
 from Raven.game_version import VersionManager
 from Raven.managers.ConstructionManager import ConstructionManager
 from Raven.managers.MapManager import MapManager
+from Raven.managers.ProductionManager import ProductionManager
 
 GREEN = Point3((0, 255, 0))
 RED = Point3((255, 0, 0))
@@ -31,17 +33,24 @@ class LogFilter:
         return record["level"].no >= levelno
 
 
+CONFIG_FILE = 'Raven/config.yaml'
+
 
 class BaseBot(sc2.BotAI):
 
     def __init__(self, loglevel=None):
         super().__init__()
+        self.iteration = 0
         self.loglevel = loglevel or "ERROR"
         self.map_manager = MapManager(self, loglevel=self.loglevel)
         self.construction_manager = ConstructionManager(self)
         self.version_manager = VersionManager()
+        self.production_manager = ProductionManager(bot=self)
         self.log_filter = LogFilter(module_name='picklerick', level=self.loglevel)
         self.log_format = LOG_FORMAT
+        with open(CONFIG_FILE, "r") as config_file:
+            self.config = yaml.safe_load(config_file)
+        self.debug = self.config["Debug"]
         # logger.add(sys.stderr,  filter=self.log_filter)
 
     def on_end(self, game_result):
@@ -53,6 +62,7 @@ class BaseBot(sc2.BotAI):
         self.map_manager.initialize()
 
     async def on_step(self, iteration: int):
+        self.client.game_step = int(self.config["GameStep"])
         # logger.info(f"{iteration}")
         pass
 

@@ -11,7 +11,7 @@ def main():
     sc2.run_game(
             sc2.maps.get(map),
             [Bot(sc2.Race.Terran, PickleRick()), Computer(sc2.Race.Zerg, sc2.Difficulty.VeryEasy)],
-            realtime=True
+            realtime=False
     )
 
 

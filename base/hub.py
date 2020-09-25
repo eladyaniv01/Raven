@@ -64,7 +64,7 @@ class Hub:
                 color=(0, 255, 255),
         )
         self.client.debug_text_screen(
-                f"Right 5",
+                f"Scv count: {self.bot.supply_workers}",  # Right 5
                 pos=(0.7, 0.22),
                 size=13,
                 color=(0, 255, 255),

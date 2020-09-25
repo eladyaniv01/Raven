@@ -1,0 +1,63 @@
+BotInfo: {BotName: PickleRick, Author: EladYaniv01, Race: Terran}
+Debug: True
+GameStep: 16
+
+AttackConditions:
+  Protoss:
+    Supply: 196
+    LossRatio: 1.2
+    ValueRatio: 1.7
+  Terran:
+    Supply: 196
+    LossRatio: 1.2
+    ValueRatio: 1.7
+  Else:
+    Supply: 196
+    LossRatio: 1.2
+    ValueRatio: 1.7
+
+DroneConditions:
+  Protoss:
+    ArmyValueRatio: 1.6
+  Terran:
+    ArmyValueRatio: 2.95
+  Else:
+    ArmyValueRatio: 0.6
+
+DroneLimit:
+  MaxTwoBaseDrone: 44
+  MaxThreeBaseDrone: 66
+  MaxMidGameDrone: 78
+  MaxLateGameDrone: 94
+  MaxMegaLateGameDrone: 48
+
+BuildCycle:
+  test_123:
+    BotName: Test
+    Cycle:
+      - HatchPoolGas
+  Terran:
+    BotName: Terran
+    Cycle:
+      - FastPool
+  Default:
+    BotName: Default
+    Cycle:
+      - HatchPoolGas
+      - FastPool
+
+Strategies:
+  FastPool:
+    OpeningBuildOrder:
+      ['drone', 'gas', 'drone', 'pool', 'drone', 'overlord', 'queen',
+       'ling', 'overlord', 'overlord', 'overlord', 'overlord']
+    TransitionConditions:
+      ['time > 250', 'enemy_static_def', 'tower_rush', 'worker_rush', 'zealot_rush']
+  HatchPoolGas:
+    OpeningBuildOrder:
+      ['overlord', 'drone', 'drone', 'drone', 'drone', 'hatchery @ nat',
+       'drone', 'drone', 'pool', 'drone', 'drone', 'drone', 'gas', 'drone', 'drone',
+       'overlord', 'queen # 1', 'queen # 2', 'ling', 'ling', 'drone', 'drone',
+       'hatchery @ third']
+    TransitionConditions:
+      ['opening_complete', 'tower_rush', 'worker_rush', 'zealot_rush']
