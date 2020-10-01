@@ -47,11 +47,17 @@ class ConstructionManager(BaseManager):
         return self.bot.structures.of_type(self.tech_tree[building_type])
 
     async def build_supply(self):  # construction
-
-        ws = self.bot.workers.gathering
+        # TODO : move this to worker manager,  and request a worker,  logic for which should be there
+        ws = self.bot.workers.idle
         depot_count = self.bot.structures.of_type([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).amount
         if ws.exists:
             w = ws.closest_to(self.bot.start_location)
+        else:
+            ws = self.bot.workers.gathering
+            if ws.exists:
+                w = ws.closest_to(self.bot.start_location)
+            else:
+                return
 
             if depot_count == 0:
                 loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT,
@@ -65,4 +71,6 @@ class ConstructionManager(BaseManager):
                 loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, w.position, placement_step=2,
                                                     random_alternative=False)
             if loc:
-                self.commander.issue_build_command(w, UnitTypeId.SUPPLYDEPOT, loc)
+                if self.commander.build_book.get(w.tag) is None and not self.bot.already_pending(
+                        unit_type=UnitTypeId.SUPPLYDEPOT):
+                    self.commander.issue_build_command(w, UnitTypeId.SUPPLYDEPOT, loc)

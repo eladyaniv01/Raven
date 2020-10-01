@@ -63,6 +63,7 @@ class BaseBot(sc2.BotAI):
 
     async def on_step(self, iteration: int):
         self.client.game_step = int(self.config["GameStep"])
+        self.iteration = iteration
         # logger.info(f"{iteration}")
         pass
 

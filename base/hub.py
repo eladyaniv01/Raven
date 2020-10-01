@@ -39,7 +39,7 @@ class Hub:
 
         # right hand side
         self.client.debug_text_screen(
-                f"Right Top",
+                f"iteration: {self.bot.iteration}",
                 pos=(0.7, 0.1),
                 size=13,
                 color=(0, 255, 255),
