@@ -1,8 +1,8 @@
-import MapAnalyzer
-from MapAnalyzer.MapData import MapData
 from sc2 import BotAI
 from sc2.position import Point2, Point3
 
+import MapAnalyzer
+from MapAnalyzer.MapData import MapData
 # from Raven.basebot import BaseBot
 from Raven.managers.ManagerBase import BaseManager
 
@@ -10,6 +10,22 @@ GREEN = Point3((0, 255, 0))
 RED = Point3((255, 0, 0))
 BLUE = Point3((0, 0, 255))
 BLACK = Point3((0, 0, 0))
+
+
+class Bases:
+    def __init__(self, bases=None):
+        self.bases = bases or []
+
+    def add_base(self, base):
+        self.bases.append(base)
+
+    def remove_base(self, base):
+        self.bases.remove(base)
+
+    def __getitem__(self, base_name):
+        for base in self.bases:
+            if base.name == base_name:
+                return base
 
 
 class BaseInfo:
@@ -22,9 +38,13 @@ class BaseInfo:
         self.chokes = self.region.region_chokes
         self.debug_loc = self.townhall.position
 
-    @staticmethod
-    def wall_off_points(choke: "MapAnalyzer.ChokeArea"):
-        return choke.buildables.points
+    def wall_off_points(self, choke: "MapAnalyzer.ChokeArea"):
+        h = self.bot.get_terrain_z_height(self.townhall)
+        high_points = []
+        for p in choke.buildables.points:
+            if self.bot.get_terrain_z_height(p) == h:
+                high_points.append(p)
+        return high_points
 
     async def draw_wallof_points(self, choke: "MapAnalyzer.ChokeArea"):
         points = self.wall_off_points(choke=choke)
@@ -62,7 +82,7 @@ class MapManager(BaseManager):
         self.bot = bot
         self.map_data = None
         self.loglevel = loglevel
-        self.bases = []
+        self.bases = Bases()
         self.main = None
 
     def initialize(self):
@@ -76,6 +96,5 @@ class MapManager(BaseManager):
         base = BaseInfo(townhall=townhall, bot=self.bot, name=name)
         if name == 'Main':
             self.main = base
-        self.bases.append(base)
-
-
+        self.bases.add_base(base)
+        self.bot.bases = self.bases
