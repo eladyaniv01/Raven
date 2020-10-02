@@ -9,6 +9,7 @@ from Raven.game_version import VersionManager
 from Raven.managers.ConstructionManager import ConstructionManager
 from Raven.managers.MapManager import MapManager
 from Raven.managers.ProductionManager import ProductionManager
+from Raven.managers.WorkerManager import WorkerManager
 
 GREEN = Point3((0, 255, 0))
 RED = Point3((255, 0, 0))
@@ -46,6 +47,7 @@ class BaseBot(sc2.BotAI):
         self.construction_manager = ConstructionManager(self)
         self.version_manager = VersionManager()
         self.production_manager = ProductionManager(bot=self)
+        self.worker_manager = WorkerManager(bot=self)
         self.log_filter = LogFilter(module_name='picklerick', level=self.loglevel)
         self.log_format = LOG_FORMAT
         with open(CONFIG_FILE, "r") as config_file:
@@ -57,7 +59,6 @@ class BaseBot(sc2.BotAI):
         super().on_end(game_result)
 
     async def on_start(self):
-
         await self.version_manager.handle_game_version(self.client)
         self.map_manager.initialize()
 
@@ -66,6 +67,9 @@ class BaseBot(sc2.BotAI):
         self.iteration = iteration
         # logger.info(f"{iteration}")
         pass
+
+    def get_builder(self, location):
+        return self.worker_manager.get_builder(location=location)
 
     def _draw_point_list(self, point_list: List = None, color=None, text=None, box_r=None) -> bool:
         if not color:
