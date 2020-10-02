@@ -36,6 +36,7 @@ class Evaluator:
                         UnitTypeId.ORBITALCOMMAND) or orbitals_needed <= 0))
 
     def should_build_supply(self) -> bool:  # evaluator
+        # TODO: rewrite logic for need supply
         below_supply_cap = self.bot.supply_cap < 200
         depots_in_production = self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
         early_game_condition = self.bot.supply_left < 6 and self.bot.supply_used >= 13 and depots_in_production < 1
