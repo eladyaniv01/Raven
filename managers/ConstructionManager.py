@@ -1,11 +1,14 @@
-from sc2 import BotAI, UnitTypeId
+import random
+
+from loguru import logger
+from sc2 import UnitTypeId
 
 from .ManagerBase import BaseManager
 
 
 class ConstructionManager(BaseManager):
 
-    def __init__(self, bot: BotAI) -> None:
+    def __init__(self, bot: "BaseBot") -> None:
         super().__init__(bot)
         self.tech_tree = dict([
                 (UnitTypeId.SUPPLYDEPOT, None),
@@ -47,30 +50,38 @@ class ConstructionManager(BaseManager):
         return self.bot.structures.of_type(self.tech_tree[building_type])
 
     async def build_supply(self):  # construction
-        # TODO : move this to worker manager,  and request a worker,  logic for which should be there
-        ws = self.bot.workers.idle
         depot_count = self.bot.structures.of_type([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).amount
-        if ws.exists:
-            w = ws.closest_to(self.bot.start_location)
-        else:
-            ws = self.bot.workers.gathering
-            if ws.exists:
-                w = ws.closest_to(self.bot.start_location)
-            else:
-                return
+        # pick base
+        base = self.bot.bases['Main']
+        # pick location in base
+        base_location = base.townhall
+        builder = self.bot.worker_manager.get_builder(location=base_location)
+        logger.info(f"Builder picked for supply : {builder}")
 
-            if depot_count == 0:
-                loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT,
-                                                    list(self.bot.main_base_ramp.corner_depots)[0],
-                                                    placement_step=2, random_alternative=False)
-            elif depot_count == 1:
-                loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT,
-                                                    list(self.bot.main_base_ramp.corner_depots)[1],
-                                                    placement_step=2, random_alternative=False)
-            else:
-                loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, w.position, placement_step=2,
-                                                    random_alternative=False)
-            if loc:
-                if self.commander.build_book.get(w.tag) is None and not self.bot.already_pending(
-                        unit_type=UnitTypeId.SUPPLYDEPOT):
-                    self.commander.issue_build_command(w, UnitTypeId.SUPPLYDEPOT, loc)
+        # need to wall off ?  todo logic for that
+
+        walloff_positions = base.wall_off_points(choke=base.chokes[0])
+
+        loc = random.choice(walloff_positions) or random.choice(base.region.buildables.points)
+        loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, near=loc, placement_step=1)
+        if loc:
+            if self.commander.build_book.get(builder.tag) is None and not self.bot.already_pending(
+                    unit_type=UnitTypeId.SUPPLYDEPOT):
+                self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, loc)
+        else:
+            logger.error("WTF")
+        # if depot_count == 0:
+        #     loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT,
+        #                                         list(self.bot.main_base_ramp.corner_depots)[0],
+        #                                         placement_step=2, random_alternative=False)
+        # elif depot_count == 1:
+        #     loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT,
+        #                                         list(self.bot.main_base_ramp.corner_depots)[1],
+        #                                         placement_step=2, random_alternative=False)
+        # else:
+        #     loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, builder.position, placement_step=2,
+        #                                         random_alternative=False)
+        # if loc:
+        #     if self.commander.build_book.get(builder.tag) is None and not self.bot.already_pending(
+        #             unit_type=UnitTypeId.SUPPLYDEPOT):
+        #         self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, loc)
