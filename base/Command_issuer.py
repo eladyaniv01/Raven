@@ -1,5 +1,5 @@
 class Commander:
-    def __init__(self, bot):
+    def __init__(self, bot: "PickleRick"):
         self.bot = bot
         self.train_commands = []
         self.build_commands = []
@@ -10,6 +10,8 @@ class Commander:
         manager.commander = self
 
     def issue_train_command(self, trainer, to_train):
+        trainer.train(to_train)
+        return
         command_tuple = (trainer, to_train)
         if trainer.tag in self.train_book.keys():
             # logger.info(f"{trainer}, {trainer.tag}")
@@ -22,6 +24,7 @@ class Commander:
 
     def issue_build_command(self, builder, to_build, location):
         command_tuple = (builder, to_build)
+        # self.bot.worker_manager.
         if builder.tag in self.build_book.keys():
             return
         else:
