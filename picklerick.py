@@ -22,6 +22,7 @@ class PickleRick(BaseBot):
         self.commander = None
         self.action_reporter = None
         self.initial_units = []
+        self.bases = []
 
     async def on_start(self):
         await super().on_start()
@@ -53,9 +54,9 @@ class PickleRick(BaseBot):
         suspected_builder = self.workers.closest_to(unit)
         sanity_check = self.commander.build_book.get(suspected_builder.tag)
         if sanity_check:
-            logger.info(f"len of build book BEFORE: {len(self.commander.build_book)}")
+            # logger.info(f"len of build book BEFORE: {len(self.commander.build_book)}")
             del self.commander.build_book[suspected_builder.tag]
-            logger.info(f"len of build book AFTER: {len(self.commander.build_book)}")
+            # logger.info(f"len of build book AFTER: {len(self.commander.build_book)}")
         else:
             logger.error(f"failed sanity check for {unit}")
 
