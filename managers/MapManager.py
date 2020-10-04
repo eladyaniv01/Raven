@@ -48,7 +48,7 @@ class BaseInfo:
         for p in choke.buildables.points:
             if self.bot.get_terrain_z_height(p) == h:
                 high_points.append(p)
-        return high_points
+        return list(map(Point2, high_points))
 
     async def draw_wallof_points(self, choke: "MapAnalyzer.ChokeArea"):
         points = self.wall_off_points(choke=choke)

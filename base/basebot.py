@@ -30,8 +30,10 @@ class LogFilter:
 
     def __call__(self, record: Dict[str, Any]) -> bool:
         # return True
-        levelno = logger.level(self.level).no
-        return record["level"].no >= levelno
+        if "raven" in record["name"].lower():
+            levelno = logger.level(self.level).no
+            return record["level"].no >= levelno
+        return False
 
 
 CONFIG_FILE = 'Raven/config.yaml'
