@@ -13,48 +13,50 @@ if TYPE_CHECKING:
 BASE_RAX_RATIO = 2
 
 
-class QueryLocations:
+class QueryLocations(list):
     def __init__(self):
-        self.items = []
+        super().__init__()
 
     def add(self, item):
-        if item not in self.items:
-            self.items.append(item)
+        if item not in self:
+            self.append(item)
         else:
             logger.warning(f"repeating item {item}")
 
     def remove(self, item):
-        if item in self.items:
-            self.items.remove(item)
+        if item in self:
+            self.remove(item)
         else:
             logger.warning(f"not in list  {item}")
 
     def is_in(self, point):
-        for item in self.items:
+        for item in self:
             if point == item.location:
                 return True
         return False
 
     def get(self, point):
         if self.is_in(point):
-            for item in self.items:
+            for item in self:
                 if item.location == point:
                     return item
 
     @property
     def good_points(self):
-        return {item.location for item in self.items if item.is_valid}
+        return {item.location for item in self if item.is_valid}
 
     @property
     def bad_points(self):
-        return {item.location for item in self.items if not item.is_valid}
+        return {item.location for item in self if not item.is_valid}
 
     def __repr__(self):
-        return f"<{len(self.items)}QueryLocations>"
+        return f"<{len(self)}QueryLocations>"
 
 
 class QueryLocation:
-    def __init__(self, location, attempts=3):
+    def __init__(self, location: tuple, attempts=3):
+        import traceback
+        assert len(location) == 2, f"location we got is {location}, {traceback.print_stack()}"
         self.location = location
         self.attempts = attempts
         self.attempts_counter = 0
@@ -121,9 +123,28 @@ class ConstructionManager(BaseManager):
         choke = base.chokes[0]
         if not base.is_walled(choke=choke):
             # todo logic for picking choke
-            points = base.wall_off_points(choke=choke)
+            points = list(map(Point2, base.wall_off_points(choke=choke)))
         else:
             points = list(map(Point2, base.region.perimeter_points))
+        if points:
+            filtered = [p for p in points if (p not in self.cached_queries.bad_points and isinstance(p, tuple))]
+            logger.error(f"filtered = {filtered}")
+            logger.error(f"points = {points}")
+            logger.error(f"self.cached_queries.bad_points = {self.cached_queries.bad_points}")
+            if len(filtered) == 0:
+                if len(base.region.buildables.points):
+                    pt = random.choice(base.region.buildables.points)
+                    assert (pt[0] and pt[1]), f"WTF"
+                    logger.error(f"filtered out,  picking  {pt}")
+                    return [pt]
+            return filtered
+        else:
+            logger.error("No Points")
+            return []
+
+    def get_best_production_placement(self, base, points=None):  # production = rax,  fact,  starport
+
+        points = list(map(Point2, base.region.perimeter_points))
         if points:
             filtered = [p for p in points if p not in self.cached_queries.bad_points]
             logger.error(f"filtered = {filtered}")
@@ -168,7 +189,10 @@ class ConstructionManager(BaseManager):
             point = random.choice(points)
             if self.cached_queries.is_in(point) and self.cached_queries.get(point).is_valid:
                 query = self.cached_queries.get(point)
-                logger.error(f"Found cached {query}")
+                logger.error(f"Found Valid cached {query}")
+            elif self.cached_queries.is_in(point) and not self.cached_queries.get(point).is_valid:
+                logger.error(f"Found NOT Valid cached {query}")
+                return
             else:
                 query = QueryLocation(location=point)
                 self.cached_queries.add(query)
@@ -179,21 +203,29 @@ class ConstructionManager(BaseManager):
             logger.error("no query")
             return
 
-        if _loc is None:
+        if _loc is None or not isinstance(_loc, tuple):
             logger.error("no _loc")
             return
 
         query.attempts_counter += 1
         loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, near=_loc, placement_step=1, max_distance=2)
+        logger.error(f"LOC = {loc}")
         if loc:
             if self.commander.build_book.get(builder.tag) is None and not self.bot.already_pending(
                     unit_type=UnitTypeId.SUPPLYDEPOT):
                 self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, loc)
+                logger.error(
+                        f"[{self.counter}] Found placement ,  tried _loc : {_loc} ")
+                return
         else:
             self.counter += 1
             logger.error(
                     f"[{self.counter}] Could not find placement ,  tried _loc : {_loc} ")  # TODO make this a generic exception
+            return
 
+        logger.error(
+                f"Could not find placement ,  tried _loc : {_loc} ")
+        return
         # walloff_positions = self.get_best_depot_placement(base=base)
         # if walloff_positions:
         #     _loc = random.choice(walloff_positions)

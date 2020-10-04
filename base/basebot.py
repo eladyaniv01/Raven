@@ -73,7 +73,7 @@ class BaseBot(sc2.BotAI):
     def get_builder(self, location):
         return self.worker_manager.get_builder(location=location)
 
-    def _draw_point_list(self, point_list: List = None, color=None, text=None, box_r=None) -> bool:
+    def draw_point_list(self, point_list: List = None, color=None, text=None, box_r=None) -> bool:
         if not color:
             color = GREEN
         for p in point_list:

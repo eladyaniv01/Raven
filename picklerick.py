@@ -3,12 +3,14 @@ import datetime
 from loguru import logger
 from sc2 import UnitTypeId
 from sc2.cache import property_cache_once_per_frame
+from sc2.position import Point2
 from sc2.unit import Unit
 
 from Raven.base.basebot import BaseBot
 from Raven.base.Command_issuer import Commander
 from Raven.base.hub import Hub
 from Raven.managers.Evaluator import Evaluator
+from Raven.managers.MapManager import BaseInfo
 
 
 class PickleRick(BaseBot):
@@ -35,8 +37,10 @@ class PickleRick(BaseBot):
 
     async def on_step(self, iteration: int):
         await super().on_step(iteration=iteration)
-        if iteration == 900:
-            await self.client.leave()
+        points = [Point2(p.location) for p in self.construction_manager.cached_queries]
+        self.draw_point_list(point_list=points)
+        # if iteration == 900:
+        #     await self.client.leave()
 
         await self.map_manager.update(iteration=iteration)
         await self.distribute_workers()
@@ -52,6 +56,19 @@ class PickleRick(BaseBot):
             self.hub.debug_draw()
 
     async def on_building_construction_complete(self, unit: Unit):
+        if self.iteration < 30:
+            return
+        is_set = False
+        logger.warning(f"self.bases = {self.bases}")
+        for base in self.bases:
+            if isinstance(base, BaseInfo):
+                if unit.position in base.region.points:
+                    base.set_structure(unit=unit)
+                    is_set = True
+                    break
+        if is_set == False:
+            logger.warning("NO BASE FOUND")
+            return
         suspected_builder = self.workers.closest_to(unit)
         sanity_check = self.commander.build_book.get(suspected_builder.tag)
         if sanity_check:
