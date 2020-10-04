@@ -1,15 +1,22 @@
 import random
+from typing import TYPE_CHECKING
 
 from loguru import logger
 from sc2 import UnitTypeId
 
 from .ManagerBase import BaseManager
 
+if TYPE_CHECKING:
+    from Raven.base.basebot import BaseBot
+
+BASE_RAX_RATIO = 2
+
 
 class ConstructionManager(BaseManager):
 
     def __init__(self, bot: "BaseBot") -> None:
         super().__init__(bot)
+        self.counter = 0
         self.tech_tree = dict([
                 (UnitTypeId.SUPPLYDEPOT, None),
                 (UnitTypeId.COMMANDCENTER, None),
@@ -49,6 +56,16 @@ class ConstructionManager(BaseManager):
     def tech_needed(self, building_type: UnitTypeId) -> list:
         return self.bot.structures.of_type(self.tech_tree[building_type])
 
+    def get_best_depot_placement(self, base):
+        choke = base.chokes[0]
+        if not base.is_walled(choke=choke):
+            # todo logic for picking choke
+            return base.wall_off_points(choke=choke)
+
+    async def build_rax(self):
+        pass
+
+
     async def build_supply(self):  # construction
         depot_count = self.bot.structures.of_type([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).amount
         # pick base
@@ -60,16 +77,35 @@ class ConstructionManager(BaseManager):
 
         # need to wall off ?  todo logic for that
 
-        walloff_positions = base.wall_off_points(choke=base.chokes[0])
+        walloff_positions = self.get_best_depot_placement(base=base)
+        if walloff_positions:
+            _loc = random.choice(walloff_positions)
+            loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, near=_loc, placement_step=1, max_distance=2)
+            if loc:
+                if self.commander.build_book.get(builder.tag) is None and not self.bot.already_pending(
+                        unit_type=UnitTypeId.SUPPLYDEPOT):
+                    self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, loc)
+                    return
+            else:
+                self.counter += 1
+                logger.error(
+                        f"[{self.counter}] Could not find placement ,  tried _loc : {_loc} ")  # TODO make this a generic exception
 
-        loc = random.choice(walloff_positions) or random.choice(base.region.buildables.points)
-        loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, near=loc, placement_step=1)
+        elif base.region.buildables.points:
+            _loc = random.choice(base.region.buildables.points)
+        else:
+            logger.error(f"Base {base} has no Buildable Points")
+            return
+        loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, near=_loc, placement_step=1, max_distance=2)
         if loc:
             if self.commander.build_book.get(builder.tag) is None and not self.bot.already_pending(
                     unit_type=UnitTypeId.SUPPLYDEPOT):
                 self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, loc)
         else:
-            logger.error("WTF")
+            self.counter += 1
+            logger.error(
+                    f"[{self.counter}] Could not find placement ,  tried _loc : {_loc} ")  # TODO make this a generic exception
+
         # if depot_count == 0:
         #     loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT,
         #                                         list(self.bot.main_base_ramp.corner_depots)[0],

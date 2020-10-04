@@ -42,7 +42,8 @@ class Evaluator:
         early_game_condition = self.bot.supply_left < 6 and self.bot.supply_used >= 13 and depots_in_production < 1
         later_game_condition = self.bot.supply_left < 12 and self.bot.supply_cap >= 40 and depots_in_production <= 2
 
-        return below_supply_cap and (early_game_condition or later_game_condition)
+        return below_supply_cap
+        # return below_supply_cap and (early_game_condition or later_game_condition)
 
     def evaluate_economy(self):
         recommended_actions = []

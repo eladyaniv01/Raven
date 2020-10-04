@@ -27,7 +27,7 @@ class WorkerManager(BaseManager):
             builder = self.bot.workers.idle.closest_to(location)
             self.builder_tags.append(builder.tag)
             return builder
-        else:
+        elif self.bot.workers.gathering.exists:
             builder = self.bot.workers.gathering.closest_to(location)
             self.builder_tags.append(builder.tag)
             return builder

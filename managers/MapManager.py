@@ -38,6 +38,10 @@ class BaseInfo:
         self.chokes = self.region.region_chokes
         self.debug_loc = self.townhall.position
 
+    def is_walled(self, choke):
+        available_points = self.wall_off_points(choke=choke)
+        return not available_points
+
     def wall_off_points(self, choke: "MapAnalyzer.ChokeArea"):
         h = self.bot.get_terrain_z_height(self.townhall)
         high_points = []

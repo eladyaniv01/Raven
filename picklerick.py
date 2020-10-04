@@ -17,6 +17,7 @@ class PickleRick(BaseBot):
         super().__init__(loglevel="INFO")
         self.hub = Hub(bot=self)
         logfile = datetime.datetime.now().isoformat().replace('.', '').replace(':', '')
+        # logger.remove()
         logger.add(f"Raven/logs/{logfile}", filter=self.log_filter)
         self.evaluator = Evaluator(bot=self)
         self.commander = None
