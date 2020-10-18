@@ -37,21 +37,50 @@ class Evaluator:
 
     def should_build_supply(self) -> bool:  # evaluator
         # TODO: rewrite logic for need supply
+        # my rate of production ?   my wanted rate ?  current rate ?
         below_supply_cap = self.bot.supply_cap < 200
         depots_in_production = self.bot.already_pending(UnitTypeId.SUPPLYDEPOT)
         early_game_condition = self.bot.supply_left < 6 and self.bot.supply_used >= 13 and depots_in_production < 1
         later_game_condition = self.bot.supply_left < 12 and self.bot.supply_cap >= 40 and depots_in_production <= 2
 
-        return below_supply_cap
-        # return below_supply_cap and (early_game_condition or later_game_condition)
+        # return below_supply_cap
+        return below_supply_cap and (early_game_condition or later_game_condition)
+
+    def should_morph_orbital(self):
+        return True
+
+    def should_morph_pf(self):
+        return False
 
     def evaluate_economy(self):
         recommended_actions = []
         if self.should_build_scv():
             priority_tuple = (UnitTypeId.SCV, 1)
             recommended_actions.append(priority_tuple)
+        if self.should_morph_orbital():
+            priority_tuple = (AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND, 1)
+            recommended_actions.append(priority_tuple)
+        if self.should_morph_pf():
+            priority_tuple = (AbilityId.UPGRADETOPLANETARYFORTRESS_PLANETARYFORTRESS, 1)
+            recommended_actions.append(priority_tuple)
 
         return recommended_actions
+
+    def should_build_rax(self) -> bool:
+        rax_count = len(self.bot.structures.of_type(UnitTypeId.BARRACKS))
+        fact_count = len(self.bot.structures.of_type(UnitTypeId.FACTORY))
+        starport_count = len(self.bot.structures.of_type(UnitTypeId.STARPORT))
+        base_count = len(self.bot.bases)
+
+        # TODO SOME LOGIC FOR PRODUCTION / INCOME / BASES  RATIO
+
+        wanted_raxes = base_count * 2
+        # logger.error(f"base_count {base_count}")
+        # logger.error(f"rax_count {rax_count}")
+        if rax_count < wanted_raxes:
+            return True
+
+        return False
 
     def evaluate_supply(self):
         recommended_actions = []

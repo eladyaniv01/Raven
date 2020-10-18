@@ -8,11 +8,22 @@ class ProductionManager(BaseManager):
     def __init__(self, bot: BotAI) -> None:
         super().__init__(bot)
         self.bot = bot
+        self.morphing_bases = []
 
     async def update(self, iteration: int) -> None:
         self.iteration = iteration
+        try:
+            for base in self.morphing_bases:
+                if base.townhall.is_ready and (
+                        base.townhall.type_id == UnitTypeId.ORBITALCOMMAND or base.townhall.type_id == UnitTypeId.PLANETARYFORTRESS):
+                    base.is_morphing = False
+                    self.morphing_bases.remove(base)
+        except Exception as e:
+            logger.error(e)
 
-    async def build_worker(self):
+    async def build_worker(self, base):
+        if base.is_morphing:
+            return
         if self.bot.townhalls.exists and self.bot.can_afford(UnitTypeId.SCV):
             for th in self.bot.townhalls.idle:
                 self.commander.issue_train_command(trainer=th, to_train=UnitTypeId.SCV)

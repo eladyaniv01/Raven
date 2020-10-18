@@ -1,3 +1,6 @@
+from sc2 import UnitTypeId
+
+
 class Hub:
     """
 
@@ -11,19 +14,20 @@ class Hub:
         # left hand side top
         self.client = self.bot.client
         self.client.debug_text_screen(
-                f"Top Left ",  # Top Left
+                f"Need Rax : {self.bot.evaluator.should_build_rax()} ",  # Top Left
                 pos=(0.2, 0.1),
                 size=13,
                 color=(0, 255, 255),
         )
         self.client.debug_text_screen(
-                f"Mid Left ",  # Mid Left
+                f"self.bases : {self.bot.bases}",  # Mid Left
                 pos=(0.2, 0.13),
                 size=13,
                 color=(0, 255, 255),
         )
         self.client.debug_text_screen(
-                f"Bottom Left ",  # Bottom Left
+                f"self.construction_manager.building_requirements_satisfied(UnitTypeId.BARRACKS) {self.bot.construction_manager.building_requirements_satisfied(UnitTypeId.BARRACKS)} ",
+                # Bottom Left
                 pos=(0.2, 0.16),
                 size=13,
                 color=(0, 255, 255),
