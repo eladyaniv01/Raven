@@ -2,11 +2,12 @@ import random
 from typing import TYPE_CHECKING
 
 from loguru import logger
-from sc2 import AbilityId, UnitTypeId
+from sc2 import UnitTypeId
 from sc2.position import Point2
 
-from .ManagerBase import BaseManager
-from ..base.logistics import BaseInfo
+from MapAnalyzer import ChokeArea
+from Raven.managers.ManagerBase import BaseManager
+from Raven.structures.TerranBase import TerranHQ
 
 if TYPE_CHECKING:
     from Raven.base.basebot import BaseBot
@@ -120,50 +121,50 @@ class ConstructionManager(BaseManager):
     def tech_needed(self, building_type: UnitTypeId) -> list:
         return self.bot.structures.of_type(self.tech_tree[building_type])
 
-    def get_best_depot_placement(self, base):
-        choke = base.chokes[0]
-        if not base.is_walled(choke=choke):
-            # todo logic for picking choke
-            points = list(map(Point2, base.wall_off_points(choke=choke)))
-        else:
-            points = list(map(Point2, base.region.perimeter_points))
-        if points:
-            filtered = [p for p in points if (p not in self.cached_queries.bad_points and isinstance(p, tuple))]
-            if len(filtered) == 0:
-                if len(base.region.buildables.points):
-                    pt = random.choice(base.region.buildables.points)
-                    assert (pt[0] and pt[1]), f"WTF"
-                    logger.error(f"filtered out,  picking  {pt}")
-                    return [pt]
-            return filtered
-        else:
-            logger.error("No Points")
-            return []
+    def get_best_depot_placement(self, base: TerranHQ):
+        # TODO  get all choke wall off spots,  and prioritize
+        choke: ChokeArea = base.chokes[0]
+        if choke.is_ramp and not base.is_walled(choke=choke):
+            """
+            if we want rax in middle do choke.ramp.corner_depots
+            else do  + choke.ramp.depot_in_middle
+            """
 
-    def get_best_production_placement(self, base):  # production = rax,  fact,  starport
-        choke = base.chokes[0]
-        if not base.is_walled(choke=choke):
-            # todo logic for picking choke
-            points = list(map(Point2, base.wall_off_points(choke=choke)))
-        else:
-            points = list(map(Point2, base.region.perimeter_points))
+            pts = list(choke.ramp.corner_depots)
+            if self.bot.structures(UnitTypeId.BARRACKS).exists:
+                pts.append(choke.ramp.depot_in_middle)
+            # pts.append(choke.ramp.depot_in_middle) # for now we assume we want rax in middle TODO logic for this
+            points_ = [p.rounded for p in pts if p in base.region.buildables.points]  # fix me
+
+            if len(points_) > 0:
+                return points_
+
+        points = list(map(Point2, base.region.perimeter_points))
+        return points
+        # if points:
+        #     filtered = [p for p in points if (p not in self.cached_queries.bad_points and isinstance(p, tuple))]
+        #     if len(filtered) == 0:
+        #         if len(base.region.buildables.points):
+        #             pt = random.choice(base.region.buildables.points)
+        #             assert (pt[0] and pt[1]), f"WTF"
+        #             return [pt]
+        #     return filtered
+        # else:
+        #     logger.error("No Points")
+        #     return []
+
+    def get_best_production_placement(self, base: TerranHQ):  # production = rax,  fact,  starport
+        choke: ChokeArea = base.chokes[0]
+        if choke.is_ramp and not base.is_walled(choke=choke):
+            # points_ = [p for p in choke.ramp.barracks_correct_placement if p in base.region.buildables.points]
+            points_ = [p for p in choke.ramp.barracks_in_middle if p in base.region.buildables.points]
+            if len(points_) > 0:
+                return points_
+        points = list(map(Point2, base.region.buildables.points))
 
         return points
 
-    def upgrade_orbital(self, base: BaseInfo):
-        # TODO  make this Base method
-        orbital_tech_requirement: float = self.bot.tech_requirement_progress(UnitTypeId.ORBITALCOMMAND)
-        if len(self.bot.structures.of_type(UnitTypeId.ORBITALCOMMAND)) > 0:
-            return
-        # logger.info(f"orbital_tech_requirement = {orbital_tech_requirement}")
-        if orbital_tech_requirement == 1:
-            if base.townhall.is_constructing_scv:
-                base.townhall(AbilityId.CANCEL_QUEUE1)
-
-            base.townhall(AbilityId.UPGRADETOORBITAL_ORBITALCOMMAND)
-            base.set_morphing()
-
-    async def build_rax(self, base):
+    async def build_rax(self, base: TerranHQ):
         # logger.error(f"BASE {base}")
         if not base:
             return
@@ -171,21 +172,21 @@ class ConstructionManager(BaseManager):
         # logger.info(f"Builder picked for Rax : {builder}")
         points = self.get_best_production_placement(base=base)
         point = random.choice(points)
-        loc = await self.bot.find_placement(UnitTypeId.BARRACKS, near=point, placement_step=2)
+        # loc = await self.bot.find_placement(UnitTypeId.BARRACKS, near=point)
         # logger.error(f"loc for rax = {loc}")
-        self.commander.issue_build_command(builder, UnitTypeId.BARRACKS, loc)
+        self.commander.issue_build_command(builder, UnitTypeId.BARRACKS, point)
 
     async def build_supply(self):  # construction
-        if not self.last_supply_try:
-            self.last_supply_try = self.bot.time
-        if self.bot.already_pending(UnitTypeId.SUPPLYDEPOT):
-            return
-        if self.bot.time - self.last_supply_try < 5:
-            # logger.warning(self.bot.time - self.last_supply_try)
-            return
-        self.last_supply_try = self.bot.time
-        depot_count = self.bot.structures.of_type([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).amount
-        _loc = None
+        # if not self.last_supply_try:
+        #     self.last_supply_try = self.bot.time
+        # if self.bot.already_pending(UnitTypeId.SUPPLYDEPOT):
+        #     return
+        # if self.bot.time - self.last_supply_try < 5:
+        #     # logger.warning(self.bot.time - self.last_supply_try)
+        #     return
+        # self.last_supply_try = self.bot.time
+        # depot_count = self.bot.structures.of_type([UnitTypeId.SUPPLYDEPOT, UnitTypeId.SUPPLYDEPOTLOWERED]).amount
+        # _loc = None
         # pick base
         base = self.bot.bases['Main']
         # pick location in base
@@ -194,44 +195,24 @@ class ConstructionManager(BaseManager):
         # logger.info(f"Builder picked for supply : {builder}")
 
         points = self.get_best_depot_placement(base=base)
-        query = None
-        if len(points) > 0:
-            point = random.choice(points)
-            if self.cached_queries.is_in(point) and self.cached_queries.get(point).is_valid:
-                query = self.cached_queries.get(point)
-                # logger.error(f"Found Valid cached {query}")
-            elif self.cached_queries.is_in(point) and not self.cached_queries.get(point).is_valid:
-                # logger.error(f"Found NOT Valid cached {query}")
-                return
-            else:
-                query = QueryLocation(location=point)
-                self.cached_queries.add(query)
-                # logger.error(f"Creating New {query}")
-            _loc = query.location
+        self.bot.draw_point_list(points)
+        _loc = random.choice(points)
 
-        if query is None:
-            # logger.error("no query")
-            return
-
-        if _loc is None or not isinstance(_loc, tuple):
-            # logger.error("no _loc")
-            return
-
-        query.attempts_counter += 1
-        loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, near=_loc, placement_step=1, max_distance=2)
-        # logger.error(f"LOC = {loc}")
-        if loc:
-            if self.commander.build_book.get(builder.tag) is None and not self.bot.already_pending(
-                    unit_type=UnitTypeId.SUPPLYDEPOT):
-                self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, loc)
-                # logger.error(
-                # f"[{self.counter}] Found placement ,  tried _loc : {_loc} ")
-                return
-        else:
-            self.counter += 1
-            # logger.error(
-            #         f"[{self.counter}] Could not find placement ,  tried _loc : {_loc} ")  # TODO make this a generic exception
-            return
+        self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, _loc)
+        # loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, near=_loc)
+        # # logger.error(f"LOC = {loc}")
+        # if loc:
+        #     if self.commander.build_book.get(builder.tag) is None and not self.bot.already_pending(
+        #             unit_type=UnitTypeId.SUPPLYDEPOT):
+        #         self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, loc)
+        #         # logger.error(
+        #         # f"[{self.counter}] Found placement ,  tried _loc : {_loc} ")
+        #         return
+        # else:
+        #     self.counter += 1
+        #     # logger.error(
+        #     #         f"[{self.counter}] Could not find placement ,  tried _loc : {_loc} ")  # TODO make this a generic exception
+        #     return
 
         # logger.error(
         #         f"Could not find placement ,  tried _loc : {_loc} ")

@@ -8,18 +8,10 @@ class ProductionManager(BaseManager):
     def __init__(self, bot: BotAI) -> None:
         super().__init__(bot)
         self.bot = bot
-        self.morphing_bases = []
+        self.pending = []  # update pending and complete
 
     async def update(self, iteration: int) -> None:
         self.iteration = iteration
-        try:
-            for base in self.morphing_bases:
-                if base.townhall.is_ready and (
-                        base.townhall.type_id == UnitTypeId.ORBITALCOMMAND or base.townhall.type_id == UnitTypeId.PLANETARYFORTRESS):
-                    base.is_morphing = False
-                    self.morphing_bases.remove(base)
-        except Exception as e:
-            logger.error(e)
 
     async def build_worker(self, base):
         if base.is_morphing:

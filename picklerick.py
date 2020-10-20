@@ -9,9 +9,8 @@ from sc2.unit import Unit
 from Raven.base.basebot import BaseBot
 from Raven.base.Command_issuer import Commander
 from Raven.base.hub import Hub
-from Raven.base.logistics import Bases
 from Raven.managers.Evaluator import Evaluator
-from Raven.managers.MapManager import BaseInfo
+from Raven.managers.MapManager import TerranHQ
 
 
 class PickleRick(BaseBot):
@@ -26,7 +25,6 @@ class PickleRick(BaseBot):
         self.commander = None
         self.action_reporter = None
         self.initial_units = []
-        self.bases: Bases = []
 
     async def on_start(self):
         await super().on_start()
@@ -37,33 +35,40 @@ class PickleRick(BaseBot):
         self.commander.set_commander(self.construction_manager)
 
     async def on_step(self, iteration: int):
-        await super().on_step(iteration=iteration)
-        # points = [Point2(p.location) for p in self.construction_manager.cached_queries]
-        # self.draw_point_list(point_list=points)
-        # if iteration == 900:
-        #     await self.client.leave()
+        try:
+            await super().on_step(iteration=iteration)
+            # points = [Point2(p.location) for p in self.construction_manager.cached_queries]
+            # self.draw_point_list(point_list=points)
+            # if iteration == 900:
+            #     await self.client.leave()
 
-        await self.map_manager.update(iteration=iteration)
-        await self.production_manager.update(iteration=iteration)
-        await self.distribute_workers()
-        econ = self.evaluator.evaluate_economy()
-        sup = self.evaluator.evaluate_supply()
-        rax = self.evaluator.should_build_rax()
-        base = self.bases[0]
-        if len(econ) > 0:
-            await self.production_manager.build_worker(base=base)
-        if len(sup) > 0:
-            if not base.is_morphing:
+            await self.map_manager.update(iteration=iteration)
+            await self.production_manager.update(iteration=iteration)
+            await self.distribute_workers()
+            econ = self.evaluator.evaluate_economy()
+            sup = self.evaluator.evaluate_supply()
+            rax = self.evaluator.should_build_rax()
+            base = self.map_manager.bases[0]
+            if len(econ) > 0:
+                await self.production_manager.build_worker(base=base)
+            if len(sup) > 0:
                 await self.construction_manager.build_supply()
 
-        if rax and self.construction_manager.building_requirements_satisfied(UnitTypeId.BARRACKS):
-            # logger.error(f"HERE - {base}")
-            # logger.error(f"self.bases - {self.bases}")
-            await self.construction_manager.build_rax(self.bases[0])
+            if rax and self.construction_manager.building_requirements_satisfied(UnitTypeId.BARRACKS):
+                # logger.error(f"HERE - {base}")
+                # logger.error(f"self.bases - {self.bases}")
+                await self.construction_manager.build_rax(base=base)
 
-        self.construction_manager.upgrade_orbital(self.bases[0])
-        if self.debug:
-            self.hub.debug_draw()
+            base.upgrade_orbital()
+            if self.debug:
+                self.hub.debug_draw()
+        except Exception as e:
+            import sys
+            tb = sys.exc_info()[2]
+            logger.error(e)
+            logger.error(tb.tb_next.tb_frame.f_code)
+            logger.error(tb.tb_next.tb_frame.f_locals)
+            input()
 
     async def on_building_construction_complete(self, unit: Unit):
         if self.iteration < 30:
@@ -72,8 +77,8 @@ class PickleRick(BaseBot):
 
         is_set = False
         # logger.warning(f"self.bases = {self.bases}")
-        for base in self.bases:
-            if isinstance(base, BaseInfo):
+        for base in self.map_manager.bases:
+            if isinstance(base, TerranHQ):
                 if unit.position.rounded in base.region.points:
                     base.set_structure(unit=unit)
                     is_set = True
