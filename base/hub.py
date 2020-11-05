@@ -1,3 +1,4 @@
+from loguru import logger
 class Hub:
     """
 
@@ -65,20 +66,28 @@ class Hub:
                 color=(0, 255, 255),
         )
         self.client.debug_text_screen(
-                f"Right Mid:",
+                f"corner walloff = {self.bot.bases[0].chokes[0].corner_walloff}",
                 pos=(0.7, 0.13),
                 size=13,
                 color=(0, 255, 255),
         )
-        self.client.debug_text_screen(
-                f"Right 3 ",
-                pos=(0.7, 0.16),
-                size=13,
-                color=(0, 255, 255),
-        )
+        try:
+            cw = [p for p in self.bot.bases[0].chokes[0].corner_walloff if
+                  p in self.bot.bases[0].region.buildables.points]
+            cw.append(self.bot.bases[0].chokes[0].middle_walloff_depot)
+            self.client.debug_text_screen(
+                    f"walloff BP\n= {cw}",
+                    pos=(0.5, 0.43),
+                    size=13,
+                    color=(0, 255, 255),
+            )
+            self.bot.draw_point_list(point_list=cw, box_r=1)
+
+        except Exception as e:
+            logger.error(e)
 
         self.client.debug_text_screen(
-                f"Right 4 ",
+                f"{self.bot.bases[0].chokes[0].ramp.upper2_for_ramp_wall}",
                 pos=(0.7, 0.19),
                 size=13,
                 color=(0, 255, 255),

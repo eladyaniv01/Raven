@@ -130,13 +130,14 @@ class ConstructionManager(BaseManager):
             else do  + choke.ramp.depot_in_middle
             """
 
-            pts = list(choke.ramp.corner_depots)
-            if self.bot.structures(UnitTypeId.BARRACKS).exists:
-                pts.append(choke.ramp.depot_in_middle)
+            pts = choke.corner_walloff
+            # if self.bot.structures(UnitTypeId.BARRACKS).exists:
+            #     pts.append(choke.ramp.depot_in_middle)
             # pts.append(choke.ramp.depot_in_middle) # for now we assume we want rax in middle TODO logic for this
-            points_ = [p.rounded for p in pts if p in base.region.buildables.points]  # fix me
+            points_ = [p for p in pts if p.rounded in base.region.buildables.points]  # fix me
 
             if len(points_) > 0:
+                points_.append(choke.middle_walloff_depot)
                 return points_
 
         points = list(map(Point2, base.region.perimeter_points))
@@ -195,10 +196,11 @@ class ConstructionManager(BaseManager):
         # logger.info(f"Builder picked for supply : {builder}")
 
         points = self.get_best_depot_placement(base=base)
-        self.bot.draw_point_list(points)
-        _loc = random.choice(points)
 
-        self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, _loc)
+        self.bot.draw_point_list(point_list=points, box_r=1)
+        _loc = random.choice(points)
+        loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, near=_loc, max_distance=1)
+        self.commander.issue_build_command(builder, UnitTypeId.SUPPLYDEPOT, loc)
         # loc = await self.bot.find_placement(UnitTypeId.SUPPLYDEPOT, near=_loc)
         # # logger.error(f"LOC = {loc}")
         # if loc:
