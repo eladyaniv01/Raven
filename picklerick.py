@@ -1,5 +1,3 @@
-import datetime
-
 from loguru import logger
 from sc2 import UnitTypeId
 from sc2.cache import property_cache_once_per_frame
@@ -18,9 +16,6 @@ class PickleRick(BaseBot):
     def __init__(self):
         super().__init__(loglevel="INFO")
         self.hub = Hub(bot=self)
-        logfile = datetime.datetime.now().isoformat().replace('.', '').replace(':', '')
-        logger.remove()
-        logger.add(f"Raven/logs/{logfile}", filter=self.log_filter)
         self.evaluator = Evaluator(bot=self)
         self.commander = None
         self.action_reporter = None
@@ -51,13 +46,14 @@ class PickleRick(BaseBot):
             base = self.map_manager.bases[0]
             if len(econ) > 0:
                 await self.production_manager.build_worker(base=base)
-            if len(sup) > 0:
-                await self.construction_manager.build_supply()
+            await self.construction_manager.build_supply()
+            # if len(sup) > 0:
+            #     await self.construction_manager.build_supply()
 
-            if rax and self.construction_manager.building_requirements_satisfied(UnitTypeId.BARRACKS):
-                # logger.error(f"HERE - {base}")
-                # logger.error(f"self.bases - {self.bases}")
-                await self.construction_manager.build_rax(base=base)
+            # if rax and self.construction_manager.building_requirements_satisfied(UnitTypeId.BARRACKS):
+            #     # logger.error(f"HERE - {base}")
+            #     # logger.error(f"self.bases - {self.bases}")
+            #     await self.construction_manager.build_rax(base=base)
 
             base.upgrade_orbital()
             if self.debug:
@@ -66,6 +62,9 @@ class PickleRick(BaseBot):
             import sys
             tb = sys.exc_info()[2]
             logger.error(e)
+            logger.error(tb.tb_next.tb_frame.f_code)
+            logger.error(tb.tb_next.tb_frame.f_locals)
+            tb = sys.exc_info()[3]
             logger.error(tb.tb_next.tb_frame.f_code)
             logger.error(tb.tb_next.tb_frame.f_locals)
             input()

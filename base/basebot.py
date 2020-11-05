@@ -1,3 +1,5 @@
+import os
+from datetime import datetime
 from typing import Any, Dict, List
 
 import sc2
@@ -36,7 +38,7 @@ class LogFilter:
         return False
 
 
-CONFIG_FILE = 'Raven/config.yaml'
+CONFIG_FILE = os.getcwd() + '/config.yaml'
 
 
 class BaseBot(sc2.BotAI):
@@ -55,6 +57,9 @@ class BaseBot(sc2.BotAI):
         with open(CONFIG_FILE, "r") as config_file:
             self.config = yaml.safe_load(config_file)
         self.debug = self.config["Debug"]
+        logfile = datetime.now().isoformat().replace('.', '').replace(':', '')
+        # logger.add(f"Raven/logs/{logfile}", filter=self.log_filter)
+        logger.add(f"Raven/logs/{logfile}")
         # logger.add(sys.stderr,  filter=self.log_filter)
 
     def on_end(self, game_result):
